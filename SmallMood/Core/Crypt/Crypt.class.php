@@ -53,7 +53,7 @@ class Crypt {
     }
 
 
-   function ed($str,$key) {
+   public static function ed($str,$key) {
       $r = md5($key);
       $c=0;
       $v = "";

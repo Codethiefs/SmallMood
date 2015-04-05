@@ -2,6 +2,7 @@
 
 namespace Small;
 
+
 class Small
 {
 
@@ -12,80 +13,117 @@ class Small
     private static $_instance = array();
 
     /**
-     * 应用程序初始化
+     * 应用程序执行
      */
-    static public function start()
+    public static function start()
     {
         // 注册AUTOLOAD方法
         spl_autoload_register('Small\Small::autoload');
         // 设定错误和异常处理
-        register_shutdown_function('Small\Small::fatalError');
-        set_error_handler('Small\Small::appError');
-        set_exception_handler('Small\Small::appException');
-        // 加载配置文件
-        Config::loadConfig();
+        register_shutdown_function('Small\Small::shutdownHandler');
+        set_error_handler('Small\Small::errorHandler');
+        set_exception_handler('Small\Small::exceptionHandler');
+
+        // 加载惯例配置文件
+        Config::load(SMALL_PATH . '/Conf/Config.php');
+
+        // 加载应用公共配置文件
+        Config::load(APP_PATH . 'Common/Conf/config.php');
+
+        // 包含基础函数库
+        include SMALL_PATH . 'Common/functions.php';
+
+        // 包含应用公共函数库
+        ($commonFunctions = APP_PATH . 'Common/Common/functions.php') && is_file($commonFunctions) && include $commonFunctions;
 
         // 设置系统时区
         date_default_timezone_set(Config::config('DEFAULT_TIMEZONE'));
+        // URL处理,解析模块、控制器、操作及参数
+        Dispatcher::dispatch();
+        // echo MODULE_NAME, " ", CONTROLLER_NAME, " ", ACTION_NAME . "<br>";
 
-        exit;
+        // 非CLI模式时初始化Session
+        if (!IS_CLI) {
+            Session::init();
+        }
+
+        $controller = MODULE_NAME . '\\Controller\\' . CONTROLLER_NAME . 'Controller';
+        if (!class_exists($controller)) {
+            die($controller . '不存在');
+        }
+        $module = new $controller;
+        $class = new \ReflectionClass($module);
+        $method = $class->hasMethod(ACTION_NAME) ? ($class->getMethod(ACTION_NAME)) : ($class->hasMethod('_empty') ? ($class->getMethod('_empty')) : NULL);
+
+        if (is_null($method) || !$method->isPublic() || $method->isStatic()) {
+            die(ACTION_NAME . '方法不存在');
+        }
+
+
+        // 如果是空操作，绑定当前操作名到第一参
+        if ('_empty' == $method->getName()) {
+            $method->invokeArgs($module, [ACTION_NAME]);
+        } else {
+            $vars = array_merge($_GET, $_POST);
+            $params = $method->getParameters();
+            $args = [];
+            foreach ($params as $param) {
+                $name = $param->getName();
+                if (isset($vars[$name])) {
+                    $args[] = $vars[$name];
+                } elseif ($param->isDefaultValueAvailable()) {
+                    $args[] = $param->getDefaultValue();
+                } else {
+                    die('参数不足' . $name);
+                }
+            }
+
+            $method->invokeArgs($module, $args);
+        }
+
+        new \ReflectionMethod('aaa', 'bbb');
+
+        return;
 
     }
 
 
     /**
-     * 类库自动加载
+     * 类自动加载方法
      */
     public static function autoload($class)
     {
-       
+        $class = str_replace('Small', 'Core', $class);
+        $routeSpace = strstr($class, '\\', true);
+        $path = in_array($routeSpace, ['Core', 'Utils', 'Vendor']) ? SMALL_PATH : APP_PATH;
+        $filename = $path . str_replace('\\', '/', $class) . '.class.php';
+        // 文件存在并且当为windows环境时大小写正确，进行文件包含
+        if (!is_file($filename) || (IS_WIN && false === strpos(str_replace('/', '\\', realpath($filename)), $class . '.class.php'))) {
+            return;
+        }
+        include $filename;
+
     }
 
-    /**
-     * 取得对象实例 支持调用类的静态方法
-     * @param string $class 对象类名
-     * @param string $method 类的静态方法名
-     * @return object
-     */
-    static public function instance($class, $method = '')
-    {
-        $identify = $class . $method;
-        if (!isset(self::$_instance[$identify])) {
-            if (class_exists($class)) {
-                $o = new $class();
-                if (!empty($method) && method_exists($o, $method))
-                    self::$_instance[$identify] = call_user_func(array(&$o, $method));
-                else
-                    self::$_instance[$identify] = $o;
-            } else
-                self::halt(L('_CLASS_NOT_EXIST_') . ':' . $class);
-        }
-        return self::$_instance[$identify];
-    }
 
     /**
      * 自定义异常处理
      * @access public
      * @param mixed $e 异常对象
      */
-    static public function appException($e)
+    static public function exceptionHandler($e)
     {
         $error = array();
         $error['message'] = $e->getMessage();
-        $trace = $e->getTrace();
-        if ('E' == $trace[0]['function']) {
-            $error['file'] = $trace[0]['file'];
-            $error['line'] = $trace[0]['line'];
-        } else {
-            $error['file'] = $e->getFile();
-            $error['line'] = $e->getLine();
-        }
-        $error['trace'] = $e->getTraceAsString();
-        Log::record($error['message'], Log::ERR);
+        $error['file'] = $e->getFile();
+        $error['line'] = $e->getLine();
+        $error['trace'] = $e->getTrace();
+        dump($error);
+        //Log::record($error['message'], Log::ERR);
         // 发送404信息
-        header('HTTP/1.1 404 Not Found');
-        header('Status:404 Not Found');
-        self::halt($error);
+        //header('HTTP/1.1 404 Not Found');
+        //header('Status:404 Not Found');
+        //self::halt($error);
     }
 
     /**
@@ -97,30 +135,15 @@ class Small
      * @param int $errline 错误行数
      * @return void
      */
-    static public function appError($errno, $errstr, $errfile, $errline)
+    static public function errorHandler($errno, $errstr, $errfile, $errline)
     {
-        switch ($errno) {
-            case E_ERROR:
-            case E_PARSE:
-            case E_CORE_ERROR:
-            case E_COMPILE_ERROR:
-            case E_USER_ERROR:
-                ob_end_clean();
-                $errorStr = "$errstr " . $errfile . " 第 $errline 行.";
-                if (C('LOG_RECORD')) Log::write("[$errno] " . $errorStr, Log::ERR);
-                self::halt($errorStr);
-                break;
-            default:
-                $errorStr = "[$errno] $errstr " . $errfile . " 第 $errline 行.";
-                self::trace($errorStr, '', 'NOTIC');
-                break;
-        }
+        echo $errorStr = "[$errno] $errstr " . $errfile . " 第 $errline 行.";
     }
 
     // 致命错误捕获
-    static public function fatalError()
+    static public function shutdownHandler()
     {
-        Log::save();
+        //Log::save();
         if ($e = error_get_last()) {
             switch ($e['type']) {
                 case E_ERROR:
@@ -133,6 +156,7 @@ class Small
                     break;
             }
         }
+        self::halt(error_get_last());
     }
 
     /**
@@ -142,6 +166,8 @@ class Small
      */
     static public function halt($error)
     {
+        print_r($error);
+
         $e = array();
         if (APP_DEBUG || IS_CLI) {
             //调试模式下输出错误信息
