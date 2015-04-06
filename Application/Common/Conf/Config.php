@@ -1,4 +1,6 @@
 <?php
-return array(
-	//'配置项'=>'配置值'
-);
+return [
+    //'配置项'=>'配置值'
+    'ERROR_PAGE' => '',
+];
+

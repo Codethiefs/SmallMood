@@ -11,15 +11,16 @@ class Crypt
 
     public static function init($type = '')
     {
-
-        $type = $type ?: Config::config('DATA_CRYPT_TYPE');
-        $class = 'Small\\Crypt\\' . ucwords(strtolower($type));
-        self::$handler = $class;
-
         if(!isset(self::$instance)){
             self::$instance = new self();
         }
+        self::$instance->setType($type);
         return self::$instance;
+    }
+
+    public function setType($type = ''){
+        $type = $type ?: Config::config('DATA_CRYPT_TYPE');
+        self::$handler = 'Small\\Crypt\\' . ucwords(strtolower($type));
     }
 
     /**
@@ -31,9 +32,6 @@ class Crypt
      */
     public function encrypt($data, $key, $expire = 0)
     {
-        if (empty(self::$handler)) {
-            self::init();
-        }
         $class = self::$handler;
         return $class::encrypt($data, $key, $expire);
     }
@@ -46,9 +44,6 @@ class Crypt
      */
     public function decrypt($data, $key)
     {
-        if (empty(self::$handler)) {
-            self::init();
-        }
         $class = self::$handler;
         return $class::decrypt($data, $key);
     }

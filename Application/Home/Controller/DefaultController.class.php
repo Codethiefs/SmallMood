@@ -1,11 +1,16 @@
 <?php
 namespace Home\Controller;
 
-class IndexController
+class DefaultController
 {
-    public function index($name,$sex=1)
+    public function index()
     {
-        echo $name,' ', $sex;
+        $xxx = $bbb/0;
+        //new \ReflectionMethod('aaa', 'bbb');
+    }
+
+    public function error(){
+        echo '404';
     }
 
 }
