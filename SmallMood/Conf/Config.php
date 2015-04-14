@@ -6,14 +6,41 @@
 
 return array(
     /* 应用设定 */
-    'MODULE_DENY_LIST'              => array('Common', 'Runtime'),      //不允许访问的ＭＯＤＵＬＥ列表
-
+    'MODULE_DENY_LIST'              => array('Common', 'Runtime'),      //不允许访问的MODULE列表
 
     /* 默认设定 */
     'DEFAULT_MODULE'                => 'Home',      // 默认模块
     'DEFAULT_CONTROLLER'            => 'Default',   // 默认控制器名称
     'DEFAULT_ACTION'                => 'index',     // 默认操作名称
     'DEFAULT_TIMEZONE'              => 'PRC',       // 默认时区
+
+
+    /* SESSION设置 */
+    'SESSION_OPTIONS' => [
+        'auto_start'    => true,            // 是否自动开启session
+        'type'          => 'redis',         // session存储类别
+        'name'          => '',              // 设置session_name的值
+        'path'          => '',              // 存储路径
+        'expire'        => 0,               // 有效期
+        'domain'        => '',              // 有效域
+    ],
+
+
+    /* Cookie设置 */
+    'COOKIE_ENCRYPT_TYPE'   => 'Crypt',                             //　采用哪种方式加密
+    'COOKIE_ENCRYPT_KEY'    => '6Y#H&^G4!~5SF)*M>HK%N?MC@H7',       //　加密串
+    'COOKIE_OPTIONS' => [
+        'httponly'      => true,                                // http only 为TRUE时浏览器无法通过js操作cookie
+        'path'          => '/',                                 // Cookie路径
+        'domain'        => '',                                  // Cookie有效域名
+        'expire'        => 0,                                   // Cookie有效期
+        'secure'        => false,                               // Cookie安全传输
+    ],
+
+
+    /* 错误设置 */
+    'ERROR_PAGE' => '',    // 错误定向页面
+
 
 
 
@@ -40,8 +67,8 @@ return array(
     'DATA_CACHE_PATH' => TEMP_PATH,// 缓存路径设置 (仅对File方式缓存有效)
 
 
-    /* 错误设置 */
-    'ERROR_PAGE' => '',    // 错误定向页面
+
+
 
     /* 日志设置 */
     'LOG_RECORD' => false,   // 默认不记录日志
@@ -52,39 +79,13 @@ return array(
     'LOG_EXCEPTION_RECORD' => false,    // 是否记录异常信息日志
 
 
-
-    /* SESSION设置 */
-    'SESSION_OPTIONS' => [
-        'auto_start'    => true,            // 是否自动开启session
-        'type'          => 'redis',         // session存储类别
-        'name'          => '',              // 设置session_name的值
-        'path'          => '',              // 存储路径
-        'expire'        => 0,               // 有效期
-        'domain'        => '',              // 有效域
-    ],
-
-
-
-    /* Cookie设置 */
-    'COOKIE_ENCRYPT_TYPE'   => 'Crypt',                             //　采用哪种方式加密
-    'COOKIE_ENCRYPT_KEY'    => '6Y#H&^G4!~5SF)*M>HK%N?MC@H7',       //　加密串
-    'COOKIE_OPTIONS' => [
-        'httponly'      => true,                                // http only 为TRUE时浏览器无法通过js操作cookie
-        'path'          => '/',                                 // Cookie路径
-        'domain'        => '',                                  // Cookie有效域名
-        'expire'        => 0,                                   // Cookie有效期
-        'secure'        => false,                               // Cookie安全传输
-    ],
-
-
     /* 模板引擎设置 */
-    'TMPL_CONTENT_TYPE' => 'text/html', // 默认模板输出类型
-    'TMPL_ACTION_ERROR' => SMALL_PATH . 'Tpl/success.tpl', // 默认错误跳转对应的模板文件
-    'TMPL_ACTION_SUCCESS' => SMALL_PATH . 'Tpl/success.tpl', // 默认成功跳转对应的模板文件
+    'TMPL_ERROR' => SMALL_PATH . 'Tpl/success.tpl', // 默认错误跳转对应的模板文件
+    'TMPL_SUCCESS' => SMALL_PATH . 'Tpl/success.tpl', // 默认成功跳转对应的模板文件
     'TMPL_EXCEPTION_FILE' => SMALL_PATH . 'Tpl/exception.tpl',// 异常页面的模板文件
-    'TMPL_DEFAULT_THEME' => 'default',       // 默认的模板主题
-    'TMPL_TEMPLATE_SUFFIX' => '.html',     // 模板文件后缀
-    'TMPL_USE_ENGINE' => FALSE,     // 是否使用模板引擎，flase时使用原生php代码
+    'TMPL_THEME' => 'default',       // 默认的模板主题
+    'TMPL_SUFFIX' => '.html',     // 模板文件后缀
+    'TMPL_USE_ENGINE' => true,     // 是否使用模板引擎，flase时使用原生php代码
     'TMPL_CACHFILE_SUFFIX' => '.php',      // 默认模板缓存后缀
     'TMPL_L_DELIM' => '{',            // 模板引擎普通标签开始标记
     'TMPL_R_DELIM' => '}',            // 模板引擎普通标签结束标记
@@ -109,8 +110,8 @@ return array(
     'VAR_MODULE'                => 'm',             // 默认模块获取变量
     'VAR_CONTROLLER'            => 'c',             // 默认控制器获取变量
     'VAR_ACTION'                => 'a',             // 默认操作获取变量
-    'VAR_SESSION_ID'            => 'DI_NOISSES',     //sessionID的提交变量
-
+    'VAR_SESSION_ID'            => 'DI_NOISSES',    //sessionID的提交变量
+    'VAR_JSONP_HANDLER'         => 'jsonp_handler',              //默认处理JSONP数据的函数名
 
 
     'DATA_CRYPT_TYPE'           => 'Crypt',                         // 数据加密方式

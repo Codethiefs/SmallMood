@@ -1,16 +1,14 @@
 <?php
 namespace Home\Controller;
 
-class DefaultController
+use Small\Controller;
+
+class DefaultController extends Controller
 {
     public function index()
     {
-        $xxx = $bbb/0;
-        //new \ReflectionMethod('aaa', 'bbb');
+        $this->assign(['ttt'=>123])->display();
     }
 
-    public function error(){
-        echo '404';
-    }
 
 }
