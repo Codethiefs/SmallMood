@@ -1,11 +1,16 @@
 <extend file="Home:Layout:layout" />
 
 <block name="body">
-{$ttt}
+    <volist name="list" id="vo">
+        <volist name="vo" id="voo">
+            {$voo.id}:{$voo.name}<br/>
+        </volist>
+
+    </volist>
 </block>
 
 
 
 <block name="sidebar">
-aaaaaaaaaaaaaaa
+
 </block>
