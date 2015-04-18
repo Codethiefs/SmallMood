@@ -162,7 +162,8 @@ class Small
         if (APP_DEBUG) {
             ob_start();
             debug_print_backtrace();
-            $error['trace'] = ob_get_clean();
+            $trace = ob_get_clean();
+            $error['trace'] = nl2br(htmlspecialchars($trace));
             include SMALL_PATH . 'Tpl/exception.tpl';
             exit;
 

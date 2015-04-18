@@ -79,9 +79,7 @@
                 <h3>TRACE</h3>
             </div>
             <div class="text">
-                <p>
-                    <?php echo nl2br($error['trace']); ?>
-                </p>
+               <?php echo $error['trace'] ?>
             </div>
         </div>
         <?php } ?>

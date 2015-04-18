@@ -83,17 +83,16 @@ return array(
     'TMPL_ERROR' => SMALL_PATH . 'Tpl/success.tpl', // 默认错误跳转对应的模板文件
     'TMPL_SUCCESS' => SMALL_PATH . 'Tpl/success.tpl', // 默认成功跳转对应的模板文件
     'TMPL_EXCEPTION_FILE' => SMALL_PATH . 'Tpl/exception.tpl',// 异常页面的模板文件
-    'TMPL_THEME' => 'default',       // 默认的模板主题
-    'TMPL_SUFFIX' => '.html',     // 模板文件后缀
-    'TMPL_USE_ENGINE' => true,     // 是否使用模板引擎，flase时使用原生php代码
+    'TMPL_THEME' => 'Default',       // 默认的模板主题
+    'TMPL_TEMPLATE_SUFFIX' => '.html',     // 模板文件后缀
     'TMPL_CACHFILE_SUFFIX' => '.php',      // 默认模板缓存后缀
     'TMPL_L_DELIM' => '{',            // 模板引擎普通标签开始标记
     'TMPL_R_DELIM' => '}',            // 模板引擎普通标签结束标记
-    'TMPL_VAR_IDENTIFY' => 'array',     // 模板变量识别。留空自动判断,参数为'obj'则表示对象
     'TMPL_STRIP_SPACE' => true,       // 是否去除模板文件里面的html空格与换行
     'TMPL_CACHE_ON' => true,        // 是否开启模板编译缓存,设为false则每次都会重新编译
     'TMPL_CACHE_TIME' => 0,         // 模板缓存有效期 0 为永久，(以数字为值，单位:秒)
-    'TMPL_LAYOUT_NAME' => 'layout', // 当前布局名称 默认为layout
+
+
 
     /* URL设置 */
     'URL_MODEL' => 1,       // URL访问模式：0 (普通模式); 1 (PATHINFO 模式); 2 (REWRITE  模式); 3 (兼容模式)  默认为PATHINFO 模式

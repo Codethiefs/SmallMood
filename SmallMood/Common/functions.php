@@ -4,15 +4,13 @@
 
 
 
-function dump($var)
-{
+function dump($var) {
     echo '<pre>';
     print_r($var);
     echo '<pre>';
 }
 
-function redirect($url, $msg = '', $time = 0)
-{
+function redirect($url, $msg = '', $time = 0) {
     //多行URL地址支持
     $url = str_replace(array("\n", "\r"), '', $url);
     if (empty($msg)) {
@@ -50,8 +48,7 @@ function redirect($url, $msg = '', $time = 0)
  * @param string $encoding 数据编码
  * @return string
  */
-function xml_encode($data, $root = 'root', $item = 'item', $attr = '', $id = 'id', $encoding = 'utf-8')
-{
+function xml_encode($data, $root = 'root', $item = 'item', $attr = '', $id = 'id', $encoding = 'utf-8') {
     if (is_array($attr)) {
         $_attr = array();
         foreach ($attr as $key => $value) {
@@ -75,8 +72,7 @@ function xml_encode($data, $root = 'root', $item = 'item', $attr = '', $id = 'id
  * @param string $id 数字索引key转换为的属性名
  * @return string
  */
-function data_to_xml($data, $item = 'item', $id = 'id')
-{
+function data_to_xml($data, $item = 'item', $id = 'id') {
     $xml = $attr = '';
     foreach ($data as $key => $val) {
         if (is_numeric($key)) {
@@ -90,6 +86,7 @@ function data_to_xml($data, $item = 'item', $id = 'id')
     return $xml;
 }
 
+
 /**
  * URL组装 支持不同URL模式
  * @param string $url URL表达式，格式：'[模块/控制器/操作#锚点@域名]?参数1=值1&参数2=值2...'
@@ -98,8 +95,7 @@ function data_to_xml($data, $item = 'item', $id = 'id')
  * @param boolean $domain 是否显示域名
  * @return string
  */
-function urlgen($url = '', $vars = '', $suffix = true, $domain = false)
-{
+function urlgen($url = '', $vars = '', $suffix = true, $domain = false) {
 
     return $url;
 }
@@ -107,8 +103,7 @@ function urlgen($url = '', $vars = '', $suffix = true, $domain = false)
 /**
  * 递归方式的对变量中的特殊字符进行转义
  */
-function addslashes_deep($value)
-{
+function addslashes_deep($value) {
     if (empty($value))
         return $value;
     else
@@ -120,8 +115,7 @@ function addslashes_deep($value)
  *
  * */
 
-function M($model = '', $prefix = TABPREFIX)
-{
+function M($model = '', $prefix = TABPREFIX) {
     if (!$model) {
         return new model();
     } else {
@@ -140,8 +134,7 @@ function M($model = '', $prefix = TABPREFIX)
  * 文件缓存和读取
  *  */
 
-function F($name, $value = '', $path = RUNTIME)
-{
+function F($name, $value = '', $path = RUNTIME) {
     $filename = $path . $name . '.php';
     //如果$value为空则试着读取缓存
     if ($value === '') {
@@ -165,16 +158,8 @@ function F($name, $value = '', $path = RUNTIME)
 }
 
 
-function cache()
-{
-    if (!defined('CACHE') || CACHE == '') {
-        $cachetype = 'smallmemcache';
-    } else {
-        $cachetype = 'small' . CACHE;
-    }
-    if (class_exists($cachetype)) {
-        return $cachetype::instance();
-    }
+function throw_exception($msg, $code = 0) {
+    throw new \Small\Exception($msg, $code);
 }
 
 

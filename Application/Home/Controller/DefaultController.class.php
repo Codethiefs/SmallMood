@@ -7,7 +7,7 @@ class DefaultController extends Controller
 {
     public function index()
     {
-        $this->assign(['ttt'=>123])->display();
+        $this->assign(['ttt'=>123])->display('');
     }
 
 
