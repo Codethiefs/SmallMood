@@ -2,11 +2,14 @@
 
 <block name="body">
     <volist name="list" id="vo">
-        <volist name="vo" id="voo">
-            {$voo.id}:{$voo.name}<br/>
+        <volist name="vo" id="voo" empty="111">
+            {$ttt}{$voo.id}:{$voo.name}<br/>
         </volist>
-
     </volist>
+
+    <p>
+        {$Small.server.script_name|strtoupper}
+    </p>
 </block>
 
 

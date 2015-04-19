@@ -206,7 +206,6 @@ class View {
         $tplContent = file_get_contents($templateFile);
         // 编译模板内容
         $tplContent = $this->compiler($tplContent);
-
         // 生成缓存文件位置
         $tplCacheFile = $this->cachePath . $prefix . md5($templateFile) . $this->cacheSuffix;
         // 编绎好的内容存入缓存文件
@@ -227,12 +226,22 @@ class View {
      * @return bool|mixed|string
      */
     public function compiler($tplContent) {
-
         // 内容为空不解析
         if (empty($tplContent)) {
             return '';
         }
 
+        // 解析标签
+        $content = $this->parse($tplContent);
+
+        // 添加安全代码
+        $content = '<?php if (!defined(\'SMALL_PATH\')) exit();?>' . $content;
+        // 优化生成的php代码
+        $content = str_replace('?><?php', '', $content);
+        return $content;
+    }
+
+    public function parse($tplContent) {
         // 整合 extend 继承及 include 语法包含的文件
         $content = $this->merge($tplContent);
 
@@ -251,10 +260,6 @@ class View {
         // 还原被替换的Literal标签
         $content = preg_replace_callback('/<!--###literal(\d+)###-->/is', [$this, 'restoreLiteral'], $content);
 
-        // 添加安全代码
-        $content = '<?php if (!defined(\'SMALL_PATH\')) exit();?>' . $content;
-        // 优化生成的php代码
-        $content = str_replace('?><?php', '', $content);
         return $content;
     }
 
@@ -284,7 +289,7 @@ class View {
         preg_replace_callback('/<block\sname=[\'"](.+?)[\'"]\s*?>(.*?)<\/block>/is', [$this, 'storeBlock'], $content);
 
         // 分析继承的模板信息
-        $extendInfo = $this->parseXmlAttrs($extendInfo[1]);
+        $extendInfo = $this->parseAttrs($extendInfo[1]);
         // 解析继承模板路径
         $extendFile = $this->parseTplPath($extendInfo['file']);
         if (!file_exists($extendFile)) {
@@ -313,7 +318,7 @@ class View {
         }
         // 用include的文件内容替换include标签
         for ($i = 0; $i < $find; $i++) {
-            $includeInfo = $this->parseXmlAttrs($matches[1][$i]);
+            $includeInfo = $this->parseAttrs($matches[1][$i]);
             if (!isset($includeInfo['file'])) {
                 die('include 标签错误：' . htmlspecialchars($matches[0][$i]));
             }
@@ -349,7 +354,7 @@ class View {
      * @param string $attrs XML属性字符串
      * @return array
      */
-    private function parseXmlAttrs($attrs) {
+    private function parseAttrs($attrs) {
         $xml = '<tag ' . $attrs . ' />';
         $xml = simplexml_load_string($xml);
         if (!$xml) {
@@ -516,7 +521,7 @@ class View {
         $tagLib = TagLib::getInstance();
         $parse = '_' . $tag;
         $content = trim($content);
-        $attrs = $tagLib->parseXmlAttr($attr, $tag);
+        $attrs = $this->parseAttrs($attr);
         return $tagLib->$parse($attrs, $content);
     }
 
@@ -566,43 +571,48 @@ class View {
             return $_varParseList[$varStr];
         }
         $parseStr = '';
-        $varExists = true;
         if (!empty($varStr)) {
             $varArray = explode('|', $varStr);
             //取得变量名称
             $var = array_shift($varArray);
-            if ('Think.' == substr($var, 0, 6)) {
-                // 所有以Think.打头的以特殊变量对待 无需模板赋值就可以输出
-                $name = $this->parseSmallVar($var);
-            } elseif (false !== strpos($var, '.')) {
-                //支持 {$var.property}
-                $vars = explode('.', $var);
-                $var = array_shift($vars);
-                $name = '$' . $var;
-                foreach ($vars as $key => $val){
-                    $name .= '["' . $val . '"]';
-                }
-            } elseif (false !== strpos($var, '[')) {
-                //支持 {$var['key']} 方式输出数组
-                $name = "$" . $var;
-                preg_match('/(.+?)\[(.+?)\]/is', $var, $match);
-                $var = $match[1];
-            } elseif (false !== strpos($var, ':') && false === strpos($var, '(') && false === strpos($var, '::') && false === strpos($var, '?')) {
-                //支持 {$var:property} 方式输出对象的属性
-                $vars = explode(':', $var);
-                $var = str_replace(':', '->', $var);
-                $name = "$" . $var;
-                $var = $vars[0];
-            } else {
-                $name = "$$var";
-            }
+            $name = $this->autoBuildVar($var);
             //对变量使用函数
-            if (count($varArray) > 0)
+            if (count($varArray) > 0) {
                 $name = $this->parseVarFunction($name, $varArray);
+            }
             $parseStr = '<?php echo (' . $name . '); ?>';
         }
         $_varParseList[$varStr] = $parseStr;
         return $parseStr;
+    }
+
+    public function autoBuildVar($var) {
+        if ('Small.' == substr($var, 0, 6)) {
+            // 所有以Think.打头的以特殊变量对待 无需模板赋值就可以输出
+            $name = $this->parseSmallVar($var);
+        } elseif (false !== strpos($var, '.')) {
+            //支持 {$var.property}
+            $vars = explode('.', $var);
+            $var = array_shift($vars);
+            $name = '$' . $var;
+            foreach ($vars as $key => $val) {
+                $name .= '["' . $val . '"]';
+            }
+        } elseif (false !== strpos($var, '[')) {
+            //支持 {$var['key']} 方式输出数组
+            $name = "$" . $var;
+            preg_match('/(.+?)\[(.+?)\]/is', $var, $match);
+            $var = $match[1];
+        } elseif (false !== strpos($var, ':') && false === strpos($var, '(') && false === strpos($var, '::') && false === strpos($var, '?')) {
+            //支持 {$var:property} 方式输出对象的属性
+            $vars = explode(':', $var);
+            $var = str_replace(':', '->', $var);
+            $name = "$" . $var;
+            $var = $vars[0];
+        } else {
+            $name = "$$var";
+        }
+        return $name;
     }
 
     /**
@@ -616,8 +626,6 @@ class View {
     public function parseVarFunction($name, $varArray) {
         //对变量使用函数
         $length = count($varArray);
-        //取得模板禁止使用函数列表
-        $template_deny_funs = explode(',', C('TMPL_DENY_FUNC_LIST'));
         for ($i = 0; $i < $length; $i++) {
             $args = explode('=', $varArray[$i], 2);
             //模板函数过滤
@@ -626,18 +634,17 @@ class View {
                 case 'default':  // 特殊模板函数
                     $name = '(isset(' . $name . ') && (' . $name . ' !== ""))?(' . $name . '):' . $args[1];
                     break;
-                default:  // 通用模板函数
-                    if (!in_array($fun, $template_deny_funs)) {
-                        if (isset($args[1])) {
-                            if (strstr($args[1], '###')) {
-                                $args[1] = str_replace('###', $name, $args[1]);
-                                $name = "$fun($args[1])";
-                            } else {
-                                $name = "$fun($name,$args[1])";
-                            }
-                        } else if (!empty($args[0])) {
-                            $name = "$fun($name)";
+                default:
+                    // 通用模板函数
+                    if (isset($args[1])) {
+                        if (strstr($args[1], '###')) {
+                            $args[1] = str_replace('###', $name, $args[1]);
+                            $name = "$fun($args[1])";
+                        } else {
+                            $name = "$fun($name,$args[1])";
                         }
+                    } else if (!empty($args[0])) {
+                        $name = "$fun($name)";
                     }
             }
         }
@@ -651,7 +658,7 @@ class View {
      * @param string $varStr 变量字符串
      * @return string
      */
-    private function parseSmallVar($varStr) {
+    public function parseSmallVar($varStr) {
         $vars = explode('.', $varStr);
         $vars[1] = strtoupper(trim($vars[1]));
         $parseStr = '';

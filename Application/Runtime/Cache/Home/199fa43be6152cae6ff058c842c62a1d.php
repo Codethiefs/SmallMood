@@ -10,7 +10,11 @@
 
 
 
-    <?php if(is_array($list)): $i = 0; $__LIST__ = $list;if( count($__LIST__)==0 ) : echo "" ;else: foreach($__LIST__ as $key=>$vo): $mod = ($i % 2 );++$i; if (!defined('SMALL_PATH')) exit(); if(is_array($vo)): $i = 0; $__LIST__ = $vo;if( count($__LIST__)==0 ) : echo "" ;else: foreach($__LIST__ as $key=>$voo): $mod = ($i % 2 );++$i; if (!defined('SMALL_PATH')) exit(); echo ($voo["id"]); ?>:<?php echo ($voo["name"]); ?><br/><?php endforeach; endif; else: echo "" ;endif;  endforeach; endif; else: echo "" ;endif; ?>
+    <?php if(is_array($list)): $i = 0; $__LIST__ = $list;if( count($__LIST__)==0 ) : echo "" ;else: foreach($__LIST__ as $key=>$vo): $mod = ($i % 2 );++$i; if(is_array($vo)): $i = 0; $__LIST__ = $vo;if( count($__LIST__)==0 ) : echo "" ;else: foreach($__LIST__ as $key=>$voo): $mod = ($i % 2 );++$i; echo ($ttt);  echo ($voo["id"]); ?>:<?php echo ($voo["name"]); ?><br/><?php endforeach; endif; else: echo "" ;endif;  endforeach; endif; else: echo "" ;endif; ?>
+
+    <p>
+        <?php echo (strtoupper($_SERVER['SCRIPT_NAME'])); ?>
+    </p>
 
 
 

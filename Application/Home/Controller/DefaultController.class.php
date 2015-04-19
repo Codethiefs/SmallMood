@@ -7,10 +7,11 @@ class DefaultController extends Controller
 {
     public function index()
     {
+        $ttt = 123;
         $list = [
-            [['id'=>1,'name' =>'fffff'],['id'=>2,'name' =>'bbbbb']],
+            [['id'=>1,'name' =>'fffff'],['id'=>2,'name' =>'']],
         ];
-        $this->assign(['list'=>$list])->display('');
+        $this->assign(['list'=>$list,'ttt'=>$ttt])->display('');
     }
 
 

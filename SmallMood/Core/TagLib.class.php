@@ -70,11 +70,9 @@ class TagLib {
     protected $valid = false;
 
     /**
-     * 当前模板对象
-     * @var object
-     * @access protected
+     * 当前视图对象
      */
-    protected $tpl;
+    protected $view;
 
     protected $comparison = array(' nheq ' => ' !== ', ' heq ' => ' === ', ' neq ' => ' != ', ' eq ' => ' == ', ' egt ' => ' >= ', ' gt ' => ' > ', ' elt ' => ' <= ', ' lt ' => ' < ');
 
@@ -92,7 +90,7 @@ class TagLib {
     }
 
     public function __construct(){
-        $this->tpl = View::getInstance();
+        $this->view = View::getInstance();
     }
 
     // 获取标签定义
@@ -100,33 +98,6 @@ class TagLib {
         return $this->tags;
     }
 
-    /**
-     * TagLib标签属性分析 返回标签属性数组
-     */
-    public function parseXmlAttr($attr, $tag) {
-        //XML解析安全过滤
-        $attr = str_replace('&', '___', $attr);
-        $xml = '<tpl><tag ' . $attr . ' /></tpl>';
-        $xml = simplexml_load_string($xml);
-        if (!$xml) {
-            die('非法的标签属性：' . $attr);
-        }
-        $xml = (array)($xml->tag->attributes());
-        if (!isset($xml['@attributes'])) {
-            return [];
-        }
-        $array = array_change_key_case($xml['@attributes']);
-        $tag = strtolower($tag);
-        $item = $this->tags[$tag];
-        $attrs = explode(',', $item['attr']);
-
-        foreach ($attrs as $name) {
-            if (isset($array[$name])) {
-                $array[$name] = str_replace('___', '&', $array[$name]);
-            }
-        }
-        return $array;
-    }
 
     /**
      * 解析条件表达式
@@ -139,122 +110,15 @@ class TagLib {
         $condition = preg_replace('/\$(\w+):(\w+)\s/is', '$\\1->\\2 ', $condition);
         $condition = preg_replace('/\$(\w+)\.(\w+)\s/is', '$\\1["\\2"] ', $condition);
         if (false !== strpos($condition, '$Small')){
-            $condition = preg_replace_callback('/(\$Think.*?)\s/is', [$this, 'parseSmallVar'], $condition);
+            $that = $this;
+            $condition = preg_replace_callback('/(\$Small.*?)\s/is', function($match) use($that){
+                $varStr = $match[1];
+                return $that->view->parseSmallVar($varStr);
+            }, $condition);
         }
 
         return $condition;
     }
-
-    /**
-     * 自动识别构建变量
-     * @access public
-     * @param string $name 变量描述
-     * @return string
-     */
-    public function autoBuildVar($name) {
-        if ('Small.' == substr($name, 0, 5)) {
-            // 特殊变量
-            return $this->parseSmallVar($name);
-        } elseif (strpos($name, '.')) {
-            $vars = explode('.', $name);
-            $var = array_shift($vars);
-            $name = '$' . $var;
-            foreach ($vars as $key => $val) {
-                if (0 === strpos($val, '$')) {
-                    $name .= '["{' . $val . '}"]';
-                } else {
-                    $name .= '["' . $val . '"]';
-                }
-            }
-        } elseif (strpos($name, ':')) {
-            // 额外的对象方式支持
-            $name = '$' . str_replace(':', '->', $name);
-        } elseif (!defined($name)) {
-            $name = '$' . $name;
-        }
-        return $name;
-    }
-
-    /**
-     * 用于标签属性里面的特殊模板变量解析
-     * 格式 以 Think. 打头的变量属于特殊模板变量
-     * @access public
-     * @param string $varStr 变量字符串
-     * @return string
-     */
-    public function parseSmallVar($varStr) {
-        if (is_array($varStr)) {//用于正则替换回调函数
-            $varStr = $varStr[1];
-        }
-        $vars = explode('.', $varStr);
-        $vars[1] = strtoupper(trim($vars[1]));
-        $parseStr = '';
-        if (count($vars) >= 3) {
-            $vars[2] = trim($vars[2]);
-            switch ($vars[1]) {
-                case 'SERVER':
-                    $parseStr = '$_SERVER[\'' . $vars[2] . '\']';
-                    break;
-                case 'GET':
-                    $parseStr = '$_GET[\'' . $vars[2] . '\']';
-                    break;
-                case 'POST':
-                    $parseStr = '$_POST[\'' . $vars[2] . '\']';
-                    break;
-                case 'COOKIE':
-                    if (isset($vars[3])) {
-                        $parseStr = '$_COOKIE[\'' . $vars[2] . '\'][\'' . $vars[3] . '\']';
-                    } else {
-                        $parseStr = '$_COOKIE[\'' . $vars[2] . '\']';
-                    }
-                    break;
-                case 'SESSION':
-                    if (isset($vars[3])) {
-                        $parseStr = '$_SESSION[\'' . $vars[2] . '\'][\'' . $vars[3] . '\']';
-                    } else {
-                        $parseStr = '$_SESSION[\'' . $vars[2] . '\']';
-                    }
-                    break;
-                case 'ENV':
-                    $parseStr = '$_ENV[\'' . $vars[2] . '\']';
-                    break;
-                case 'REQUEST':
-                    $parseStr = '$_REQUEST[\'' . $vars[2] . '\']';
-                    break;
-                case 'CONST':
-                    $parseStr = strtoupper($vars[2]);
-                    break;
-                case 'LANG':
-                    $parseStr = 'L("' . $vars[2] . '")';
-                    break;
-                case 'CONFIG':
-                    $parseStr = 'C("' . $vars[2] . '")';
-                    break;
-            }
-        } else if (count($vars) == 2) {
-            switch ($vars[1]) {
-                case 'NOW':
-                    $parseStr = "date('Y-m-d g:i a',time())";
-                    break;
-                case 'VERSION':
-                    $parseStr = 'THINK_VERSION';
-                    break;
-                case 'TEMPLATE':
-                    $parseStr = 'C("TEMPLATE_NAME")';
-                    break;
-                case 'LDELIM':
-                    $parseStr = 'C("TMPL_L_DELIM")';
-                    break;
-                case 'RDELIM':
-                    $parseStr = 'C("TMPL_R_DELIM")';
-                    break;
-                default:
-                    if (defined($vars[1])) $parseStr = $vars[1];
-            }
-        }
-        return $parseStr;
-    }
-
 
     /**
      * php标签解析
@@ -293,7 +157,7 @@ class TagLib {
             $parseStr .= '$_result=' . substr($name, 1) . ';';
             $name = '$_result';
         } else {
-            $name = $this->autoBuildVar($name);
+            $name = $this->view->autoBuildVar($name);
         }
         $parseStr .= 'if(is_array(' . $name . ')): $' . $key . ' = 0;';
         if (isset($tag['length']) && '' != $tag['length']) {
@@ -308,7 +172,7 @@ class TagLib {
         $parseStr .= 'foreach($__LIST__ as $key=>$' . $id . '): ';
         $parseStr .= '$mod = ($' . $key . ' % ' . $mod . ' );';
         $parseStr .= '++$' . $key . ';?>';
-        $parseStr .= $this->tpl->compiler($content);
+        $parseStr .= ($content);
         $parseStr .= '<?php endforeach; endif; else: echo "' . $empty . '" ;endif; ?>';
 
         return $parseStr;
@@ -324,9 +188,9 @@ class TagLib {
         $name = $attr['name'];
         $item = $attr['item'];
         $key = !empty($attr['key']) ? $attr['key'] : 'key';
-        $name = $this->autoBuildVar($name);
+        $name = $this->view->autoBuildVar($name);
         $parseStr = '<?php if(is_array(' . $name . ')): foreach(' . $name . ' as $' . $key . '=>$' . $item . '): ?>';
-        $parseStr .= $this->tpl->compiler($content);
+        $parseStr .= $content;
         $parseStr .= '<?php endforeach; endif; ?>';
 
             return $parseStr;
@@ -393,9 +257,9 @@ class TagLib {
         $name = $attrs['name'];
         $varArray = explode('|', $name);
         $name = array_shift($varArray);
-        $name = $this->autoBuildVar($name);
+        $name = $this->view->autoBuildVar($name);
         if (count($varArray) > 0){
-            $name = $this->tpl->parseVarFunction($name, $varArray);
+            $name = $this->view->parseVarFunction($name, $varArray);
         }
         $parseStr = '<?php switch(' . $name . '): ?>' . $content . '<?php endswitch;?>';
         return $parseStr;
@@ -413,9 +277,9 @@ class TagLib {
         if ('$' == substr($value, 0, 1)) {
             $varArray = explode('|', $value);
             $value = array_shift($varArray);
-            $value = $this->autoBuildVar(substr($value, 1));
+            $value = $this->view->autoBuildVar(substr($value, 1));
             if (count($varArray) > 0)
-                $value = $this->tpl->parseVarFunction($value, $varArray);
+                $value = $this->view->parseVarFunction($value, $varArray);
             $value = 'case ' . $value . ': ';
         } elseif (strpos($value, '|')) {
             $values = explode('|', $value);
@@ -463,11 +327,11 @@ class TagLib {
         $type = $this->parseCondition(' ' . $type . ' ');
         $varArray = explode('|', $name);
         $name = array_shift($varArray);
-        $name = $this->autoBuildVar($name);
+        $name = $this->view->autoBuildVar($name);
         if (count($varArray) > 0)
-            $name = $this->tpl->parseVarFunction($name, $varArray);
+            $name = $this->view->parseVarFunction($name, $varArray);
         if ('$' == substr($value, 0, 1)) {
-            $value = $this->autoBuildVar(substr($value, 1));
+            $value = $this->view->autoBuildVar(substr($value, 1));
         } else {
             $value = '"' . $value . '"';
         }
@@ -531,14 +395,14 @@ class TagLib {
         $value = $attrs['value'];
         $varArray = explode('|', $name);
         $name = array_shift($varArray);
-        $name = $this->autoBuildVar($name);
+        $name = $this->view->autoBuildVar($name);
         if (count($varArray) > 0)
-            $name = $this->tpl->parseVarFunction($name, $varArray);
+            $name = $this->view->parseVarFunction($name, $varArray);
 
         $type = isset($attrs['type']) ? $attrs['type'] : $type;
 
         if ('$' == substr($value, 0, 1)) {
-            $value = $this->autoBuildVar(substr($value, 1));
+            $value = $this->view->autoBuildVar(substr($value, 1));
             $str = 'is_array(' . $value . ')?' . $value . ':explode(\',\',' . $value . ')';
         } else {
             $value = '"' . $value . '"';
@@ -584,7 +448,7 @@ class TagLib {
      */
     public function _present($attrs, $content) {
         $name = $attrs['name'];
-        $name = $this->autoBuildVar($name);
+        $name = $this->view->autoBuildVar($name);
         $parseStr = '<?php if(isset(' . $name . ')): ?>' . $content . '<?php endif; ?>';
         return $parseStr;
     }
@@ -600,7 +464,7 @@ class TagLib {
      */
     public function _notpresent($attrs, $content) {
         $name = $attrs['name'];
-        $name = $this->autoBuildVar($name);
+        $name = $this->view->autoBuildVar($name);
         $parseStr = '<?php if(!isset(' . $name . ')): ?>' . $content . '<?php endif; ?>';
         return $parseStr;
     }
@@ -616,14 +480,14 @@ class TagLib {
      */
     public function _empty($attrs, $content) {
         $name = $attrs['name'];
-        $name = $this->autoBuildVar($name);
+        $name = $this->view->autoBuildVar($name);
         $parseStr = '<?php if(empty(' . $name . ')): ?>' . $content . '<?php endif; ?>';
         return $parseStr;
     }
 
     public function _notempty($attrs, $content) {
         $name = $attrs['name'];
-        $name = $this->autoBuildVar($name);
+        $name = $this->view->autoBuildVar($name);
         $parseStr = '<?php if(!empty(' . $name . ')): ?>' . $content . '<?php endif; ?>';
         return $parseStr;
     }
@@ -658,9 +522,9 @@ class TagLib {
      * @return string
      */
     public function _assign($attrs, $content) {
-        $name = $this->autoBuildVar($attrs['name']);
+        $name = $this->view->autoBuildVar($attrs['name']);
         if ('$' == substr($attrs['value'], 0, 1)) {
-            $value = $this->autoBuildVar(substr($attrs['value'], 1));
+            $value = $this->view->autoBuildVar(substr($attrs['value'], 1));
         } else {
             $value = '\'' . $attrs['value'] . '\'';
         }
@@ -680,7 +544,7 @@ class TagLib {
     public function _define($attrs, $content) {
         $name = '\'' . $attrs['name'] . '\'';
         if ('$' == substr($attrs['value'], 0, 1)) {
-            $value = $this->autoBuildVar(substr($attrs['value'], 1));
+            $value = $this->view->autoBuildVar(substr($attrs['value'], 1));
         } else {
             $value = '\'' . $attrs['value'] . '\'';
         }
@@ -710,7 +574,7 @@ class TagLib {
             if (':' == substr($value, 0, 1))
                 $value = substr($value, 1);
             elseif ('$' == substr($value, 0, 1))
-                $value = $this->autoBuildVar(substr($value, 1));
+                $value = $this->view->autoBuildVar(substr($value, 1));
             switch ($key) {
                 case 'start':
                     $start = $value;
