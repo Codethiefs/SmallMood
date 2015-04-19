@@ -1,12 +1,16 @@
 <?php
 namespace Small;
 
-use Small\Cache\File;
+use Small\View\ParseVar;
+use Small\View\TagLib;
 
 /**
  * 视图类
  */
 class View {
+
+    use ParseVar;
+
     /**
      * 模板输出变量
      */
@@ -210,6 +214,8 @@ class View {
         $tplCacheFile = $this->cachePath . $prefix . md5($templateFile) . $this->cacheSuffix;
         // 编绎好的内容存入缓存文件
         Storage::getInstance()->put($tplCacheFile, trim($tplContent));
+        $tplContent = php_strip_whitespace($tplCacheFile);
+        Storage::getInstance()->put($tplCacheFile, trim($tplContent));
         // 加载编绎好的模板
         Storage::getInstance()->load($tplCacheFile, $this->vars);
         // 获取并清空缓存
@@ -238,7 +244,7 @@ class View {
         $content = '<?php if (!defined(\'SMALL_PATH\')) exit();?>' . $content;
         // 优化生成的php代码
         $content = str_replace('?><?php', '', $content);
-        return $content;
+        return strip_whitespace($content);
     }
 
     public function parse($tplContent) {
@@ -586,153 +592,6 @@ class View {
         return $parseStr;
     }
 
-    public function autoBuildVar($var) {
-        if ('Small.' == substr($var, 0, 6)) {
-            // 所有以Think.打头的以特殊变量对待 无需模板赋值就可以输出
-            $name = $this->parseSmallVar($var);
-        } elseif (false !== strpos($var, '.')) {
-            //支持 {$var.property}
-            $vars = explode('.', $var);
-            $var = array_shift($vars);
-            $name = '$' . $var;
-            foreach ($vars as $key => $val) {
-                $name .= '["' . $val . '"]';
-            }
-        } elseif (false !== strpos($var, '[')) {
-            //支持 {$var['key']} 方式输出数组
-            $name = "$" . $var;
-            preg_match('/(.+?)\[(.+?)\]/is', $var, $match);
-            $var = $match[1];
-        } elseif (false !== strpos($var, ':') && false === strpos($var, '(') && false === strpos($var, '::') && false === strpos($var, '?')) {
-            //支持 {$var:property} 方式输出对象的属性
-            $vars = explode(':', $var);
-            $var = str_replace(':', '->', $var);
-            $name = "$" . $var;
-            $var = $vars[0];
-        } else {
-            $name = "$$var";
-        }
-        return $name;
-    }
-
-    /**
-     * 对模板变量使用函数
-     * 格式 {$varname|function1|function2=arg1,arg2}
-     * @access public
-     * @param string $name 变量名
-     * @param array $varArray 函数列表
-     * @return string
-     */
-    public function parseVarFunction($name, $varArray) {
-        //对变量使用函数
-        $length = count($varArray);
-        for ($i = 0; $i < $length; $i++) {
-            $args = explode('=', $varArray[$i], 2);
-            //模板函数过滤
-            $fun = trim($args[0]);
-            switch ($fun) {
-                case 'default':  // 特殊模板函数
-                    $name = '(isset(' . $name . ') && (' . $name . ' !== ""))?(' . $name . '):' . $args[1];
-                    break;
-                default:
-                    // 通用模板函数
-                    if (isset($args[1])) {
-                        if (strstr($args[1], '###')) {
-                            $args[1] = str_replace('###', $name, $args[1]);
-                            $name = "$fun($args[1])";
-                        } else {
-                            $name = "$fun($name,$args[1])";
-                        }
-                    } else if (!empty($args[0])) {
-                        $name = "$fun($name)";
-                    }
-            }
-        }
-        return $name;
-    }
-
-    /**
-     * 特殊模板变量解析
-     * 格式 以 $Think. 打头的变量属于特殊模板变量
-     * @access public
-     * @param string $varStr 变量字符串
-     * @return string
-     */
-    public function parseSmallVar($varStr) {
-        $vars = explode('.', $varStr);
-        $vars[1] = strtoupper(trim($vars[1]));
-        $parseStr = '';
-        if (count($vars) >= 3) {
-            $vars[2] = trim($vars[2]);
-            switch ($vars[1]) {
-                case 'SERVER':
-                    $parseStr = '$_SERVER[\'' . strtoupper($vars[2]) . '\']';
-                    break;
-                case 'GET':
-                    $parseStr = '$_GET[\'' . $vars[2] . '\']';
-                    break;
-                case 'POST':
-                    $parseStr = '$_POST[\'' . $vars[2] . '\']';
-                    break;
-                case 'COOKIE':
-                    if (isset($vars[3])) {
-                        $parseStr = '$_COOKIE[\'' . $vars[2] . '\'][\'' . $vars[3] . '\']';
-                    } else {
-                        $parseStr = 'cookie(\'' . $vars[2] . '\')';
-                    }
-                    break;
-                case 'SESSION':
-                    if (isset($vars[3])) {
-                        $parseStr = '$_SESSION[\'' . $vars[2] . '\'][\'' . $vars[3] . '\']';
-                    } else {
-                        $parseStr = 'session(\'' . $vars[2] . '\')';
-                    }
-                    break;
-                case 'ENV':
-                    $parseStr = '$_ENV[\'' . strtoupper($vars[2]) . '\']';
-                    break;
-                case 'REQUEST':
-                    $parseStr = '$_REQUEST[\'' . $vars[2] . '\']';
-                    break;
-                case 'CONST':
-                    $parseStr = strtoupper($vars[2]);
-                    break;
-                case 'LANG':
-                    $parseStr = 'L("' . $vars[2] . '")';
-                    break;
-                case 'CONFIG':
-                    if (isset($vars[3])) {
-                        $vars[2] .= '.' . $vars[3];
-                    }
-                    $parseStr = 'C("' . $vars[2] . '")';
-                    break;
-                default:
-                    break;
-            }
-        } else if (count($vars) == 2) {
-            switch ($vars[1]) {
-                case 'NOW':
-                    $parseStr = "date('Y-m-d g:i a',time())";
-                    break;
-                case 'VERSION':
-                    $parseStr = 'THINK_VERSION';
-                    break;
-                case 'TEMPLATE':
-                    $parseStr = "'" . $this->templateFile . "'";//'C("TEMPLATE_NAME")';
-                    break;
-                case 'LDELIM':
-                    $parseStr = 'C("TMPL_L_DELIM")';
-                    break;
-                case 'RDELIM':
-                    $parseStr = 'C("TMPL_R_DELIM")';
-                    break;
-                default:
-                    if (defined($vars[1]))
-                        $parseStr = $vars[1];
-            }
-        }
-        return $parseStr;
-    }
 
 
 }

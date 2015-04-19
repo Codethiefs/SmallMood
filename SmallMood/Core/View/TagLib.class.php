@@ -1,9 +1,11 @@
 <?php
-namespace Small;
+namespace Small\View;
+
 /**
  * 标签库TagLib类
  */
 class TagLib {
+    use ParseVar;
 
     /**
      * 标签库定义XML文件
@@ -69,11 +71,6 @@ class TagLib {
      */
     protected $valid = false;
 
-    /**
-     * 当前视图对象
-     */
-    protected $view;
-
     protected $comparison = array(' nheq ' => ' !== ', ' heq ' => ' === ', ' neq ' => ' != ', ' eq ' => ' == ', ' egt ' => ' >= ', ' gt ' => ' > ', ' elt ' => ' <= ', ' lt ' => ' < ');
 
     protected static $instance;
@@ -87,10 +84,6 @@ class TagLib {
             self::$instance = new self();
         }
         return self::$instance;
-    }
-
-    public function __construct(){
-        $this->view = View::getInstance();
     }
 
     // 获取标签定义
@@ -113,7 +106,7 @@ class TagLib {
             $that = $this;
             $condition = preg_replace_callback('/(\$Small.*?)\s/is', function($match) use($that){
                 $varStr = $match[1];
-                return $that->view->parseSmallVar($varStr);
+                return $that->parseSmallVar($varStr);
             }, $condition);
         }
 
@@ -157,7 +150,7 @@ class TagLib {
             $parseStr .= '$_result=' . substr($name, 1) . ';';
             $name = '$_result';
         } else {
-            $name = $this->view->autoBuildVar($name);
+            $name = $this->autoBuildVar($name);
         }
         $parseStr .= 'if(is_array(' . $name . ')): $' . $key . ' = 0;';
         if (isset($tag['length']) && '' != $tag['length']) {
@@ -188,7 +181,7 @@ class TagLib {
         $name = $attr['name'];
         $item = $attr['item'];
         $key = !empty($attr['key']) ? $attr['key'] : 'key';
-        $name = $this->view->autoBuildVar($name);
+        $name = $this->autoBuildVar($name);
         $parseStr = '<?php if(is_array(' . $name . ')): foreach(' . $name . ' as $' . $key . '=>$' . $item . '): ?>';
         $parseStr .= $content;
         $parseStr .= '<?php endforeach; endif; ?>';
@@ -257,9 +250,9 @@ class TagLib {
         $name = $attrs['name'];
         $varArray = explode('|', $name);
         $name = array_shift($varArray);
-        $name = $this->view->autoBuildVar($name);
+        $name = $this->autoBuildVar($name);
         if (count($varArray) > 0){
-            $name = $this->view->parseVarFunction($name, $varArray);
+            $name = $this->parseVarFunction($name, $varArray);
         }
         $parseStr = '<?php switch(' . $name . '): ?>' . $content . '<?php endswitch;?>';
         return $parseStr;
@@ -277,9 +270,9 @@ class TagLib {
         if ('$' == substr($value, 0, 1)) {
             $varArray = explode('|', $value);
             $value = array_shift($varArray);
-            $value = $this->view->autoBuildVar(substr($value, 1));
+            $value = $this->autoBuildVar(substr($value, 1));
             if (count($varArray) > 0)
-                $value = $this->view->parseVarFunction($value, $varArray);
+                $value = $this->parseVarFunction($value, $varArray);
             $value = 'case ' . $value . ': ';
         } elseif (strpos($value, '|')) {
             $values = explode('|', $value);
@@ -327,11 +320,11 @@ class TagLib {
         $type = $this->parseCondition(' ' . $type . ' ');
         $varArray = explode('|', $name);
         $name = array_shift($varArray);
-        $name = $this->view->autoBuildVar($name);
+        $name = $this->autoBuildVar($name);
         if (count($varArray) > 0)
-            $name = $this->view->parseVarFunction($name, $varArray);
+            $name = $this->parseVarFunction($name, $varArray);
         if ('$' == substr($value, 0, 1)) {
-            $value = $this->view->autoBuildVar(substr($value, 1));
+            $value = $this->autoBuildVar(substr($value, 1));
         } else {
             $value = '"' . $value . '"';
         }
@@ -395,14 +388,14 @@ class TagLib {
         $value = $attrs['value'];
         $varArray = explode('|', $name);
         $name = array_shift($varArray);
-        $name = $this->view->autoBuildVar($name);
+        $name = $this->autoBuildVar($name);
         if (count($varArray) > 0)
-            $name = $this->view->parseVarFunction($name, $varArray);
+            $name = $this->parseVarFunction($name, $varArray);
 
         $type = isset($attrs['type']) ? $attrs['type'] : $type;
 
         if ('$' == substr($value, 0, 1)) {
-            $value = $this->view->autoBuildVar(substr($value, 1));
+            $value = $this->autoBuildVar(substr($value, 1));
             $str = 'is_array(' . $value . ')?' . $value . ':explode(\',\',' . $value . ')';
         } else {
             $value = '"' . $value . '"';
@@ -448,7 +441,7 @@ class TagLib {
      */
     public function _present($attrs, $content) {
         $name = $attrs['name'];
-        $name = $this->view->autoBuildVar($name);
+        $name = $this->autoBuildVar($name);
         $parseStr = '<?php if(isset(' . $name . ')): ?>' . $content . '<?php endif; ?>';
         return $parseStr;
     }
@@ -464,7 +457,7 @@ class TagLib {
      */
     public function _notpresent($attrs, $content) {
         $name = $attrs['name'];
-        $name = $this->view->autoBuildVar($name);
+        $name = $this->autoBuildVar($name);
         $parseStr = '<?php if(!isset(' . $name . ')): ?>' . $content . '<?php endif; ?>';
         return $parseStr;
     }
@@ -480,14 +473,14 @@ class TagLib {
      */
     public function _empty($attrs, $content) {
         $name = $attrs['name'];
-        $name = $this->view->autoBuildVar($name);
+        $name = $this->autoBuildVar($name);
         $parseStr = '<?php if(empty(' . $name . ')): ?>' . $content . '<?php endif; ?>';
         return $parseStr;
     }
 
     public function _notempty($attrs, $content) {
         $name = $attrs['name'];
-        $name = $this->view->autoBuildVar($name);
+        $name = $this->autoBuildVar($name);
         $parseStr = '<?php if(!empty(' . $name . ')): ?>' . $content . '<?php endif; ?>';
         return $parseStr;
     }
@@ -522,9 +515,9 @@ class TagLib {
      * @return string
      */
     public function _assign($attrs, $content) {
-        $name = $this->view->autoBuildVar($attrs['name']);
+        $name = $this->autoBuildVar($attrs['name']);
         if ('$' == substr($attrs['value'], 0, 1)) {
-            $value = $this->view->autoBuildVar(substr($attrs['value'], 1));
+            $value = $this->autoBuildVar(substr($attrs['value'], 1));
         } else {
             $value = '\'' . $attrs['value'] . '\'';
         }
@@ -544,7 +537,7 @@ class TagLib {
     public function _define($attrs, $content) {
         $name = '\'' . $attrs['name'] . '\'';
         if ('$' == substr($attrs['value'], 0, 1)) {
-            $value = $this->view->autoBuildVar(substr($attrs['value'], 1));
+            $value = $this->autoBuildVar(substr($attrs['value'], 1));
         } else {
             $value = '\'' . $attrs['value'] . '\'';
         }
@@ -574,7 +567,7 @@ class TagLib {
             if (':' == substr($value, 0, 1))
                 $value = substr($value, 1);
             elseif ('$' == substr($value, 0, 1))
-                $value = $this->view->autoBuildVar(substr($value, 1));
+                $value = $this->autoBuildVar(substr($value, 1));
             switch ($key) {
                 case 'start':
                     $start = $value;

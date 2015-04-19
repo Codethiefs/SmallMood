@@ -110,56 +110,62 @@ function addslashes_deep($value) {
         return is_array($value) ? array_map('addslashes_deep', $value) : addslashes($value);
 }
 
-/*
- * 实例化一个模型；
- *
- * */
-
-function M($model = '', $prefix = TABPREFIX) {
-    if (!$model) {
-        return new model();
-    } else {
-        $modelname = strtolower($model) . 'Model';
-        if (file_exists(APPPA . 'model/' . $modelname . '.class.php')) {
-            return new $modelname;
-        } else {
-            return new model($model, $prefix);
-        }
-
-    }
-}
-
-
-/* 
- * 文件缓存和读取
- *  */
-
-function F($name, $value = '', $path = RUNTIME) {
-    $filename = $path . $name . '.php';
-    //如果$value为空则试着读取缓存
-    if ($value === '') {
-        if (is_file($filename)) {
-            $v = include $filename;
-        } else {
-            $v = false;
-        }
-        return $v;
-        //如果$value=null则 删除对应的缓文件
-    } elseif (is_null($value)) {
-        return unlink($filename);
-        //其他情况写缓存
-    } else {
-        $dir = dirname($filename);
-        if (!is_dir($dir))
-            mkdir($dir, 0755, true);
-        $value = var_export($value, true);
-        return file_put_contents($filename, "<?php \n return " . $value . ";\n?>");
-    }
-}
 
 
 function throw_exception($msg, $code = 0) {
     throw new \Small\Exception($msg, $code);
 }
+
+/**
+ * 去除代码中的空白和注释
+ * @param string $content 代码内容
+ * @return string
+ */
+function strip_whitespace($content) {
+    $stripStr   = '';
+    //分析php源码
+    $tokens     = token_get_all($content);
+    $last_space = false;
+    for ($i = 0, $j = count($tokens); $i < $j; $i++) {
+        if (is_string($tokens[$i])) {
+            $last_space = false;
+            $stripStr  .= $tokens[$i];
+        } else {
+            switch ($tokens[$i][0]) {
+                //过滤各种PHP注释
+                case T_COMMENT:
+                case T_DOC_COMMENT:
+                    break;
+                //过滤空格
+                case T_WHITESPACE:
+                    if (!$last_space) {
+                        $stripStr  .= ' ';
+                        $last_space = true;
+                    }
+                    break;
+                case T_START_HEREDOC:
+                    $stripStr .= "<<<SMALL\n";
+                    break;
+                case T_END_HEREDOC:
+                    $stripStr .= "SMALL;\n";
+                    for($k = $i+1; $k < $j; $k++) {
+                        if(is_string($tokens[$k]) && $tokens[$k] == ';') {
+                            $i = $k;
+                            break;
+                        } else if($tokens[$k][0] == T_CLOSE_TAG) {
+                            break;
+                        }
+                    }
+                    break;
+                default:
+                    $last_space = false;
+                    $stripStr  .= $tokens[$i][1];
+            }
+        }
+    }
+
+    return $stripStr;
+}
+
 
 
