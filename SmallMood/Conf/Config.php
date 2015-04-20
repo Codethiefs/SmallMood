@@ -6,7 +6,7 @@
 
 return array(
     /* 应用设定 */
-    'MODULE_DENY_LIST'              => array('Common', 'Runtime'),      //不允许访问的MODULE列表
+    'MODULE_DENY_LIST'              => ['Common', 'Runtime'],      //不允许访问的MODULE列表
 
     /* 默认设定 */
     'DEFAULT_MODULE'                => 'Home',      // 默认模块
@@ -34,7 +34,7 @@ return array(
         'path'          => '/',                                 // Cookie路径
         'domain'        => '',                                  // Cookie有效域名
         'expire'        => 0,                                   // Cookie有效期
-        'secure'        => false,                               // Cookie安全传输
+        'secure'        => false,                              // Cookie安全传输
     ],
 
 
@@ -42,20 +42,13 @@ return array(
     'ERROR_PAGE' => '',    // 错误定向页面
 
 
-
-
     /* 数据库设置 */
-    'DB_TYPE' => '',     // 数据库类型
-    'DB_HOST' => '', // 服务器地址
-    'DB_NAME' => '',          // 数据库名
-    'DB_USER' => '',      // 用户名
-    'DB_PWD' => '',          // 密码
-    'DB_PORT' => '',        // 端口
-    'DB_PREFIX' => '',    // 数据库表前缀
-    'DB_PARAMS' => array(), // 数据库连接参数
-    'DB_DEBUG' => TRUE, // 数据库调试模式 开启后可以记录SQL日志
-    'DB_FIELDS_CACHE' => true,        // 启用字段缓存
-    'DB_CHARSET' => 'utf8',      // 数据库编码默认采用utf8
+    'DB' => [
+        'default' => [
+            'dsn' => 'mysql://root:123456@localhost:3306/small#utf8',
+            'prefix' => 'small',
+        ]
+    ],
 
 
     /* 数据缓存设置 */
@@ -65,9 +58,6 @@ return array(
     'DATA_CACHE_PREFIX' => '',     // 缓存前缀
     'DATA_CACHE_TYPE' => 'File',  // 数据缓存类型,支持:File|Db|Memcache
     'DATA_CACHE_PATH' => TEMP_PATH,// 缓存路径设置 (仅对File方式缓存有效)
-
-
-
 
 
     /* 日志设置 */
@@ -129,5 +119,6 @@ return array(
         // host:port
         'default' => '127.0.0.1:6379',
     ],
+
 
 );

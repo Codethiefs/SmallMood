@@ -7,6 +7,7 @@ class DefaultController extends Controller
 {
     public function index()
     {
+        phpinfo();exit;
         $ttt = 123;
         $list = [
             [['id'=>1,'name' =>'fffff'],['id'=>2,'name' =>'']],
